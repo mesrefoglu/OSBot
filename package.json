@@ -1,0 +1,23 @@
+{
+  "name": "osbot",
+  "version": "0.0.2",
+  "description": "An open source Discord bot with various uses.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/qedized/OSBot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/qedized/OSBot/issues"
+  },
+  "homepage": "https://github.com/qedized/OSBot#readme",
+  "dependencies": {
+    "discord.js": "^13.3.1"
+  }
+}
