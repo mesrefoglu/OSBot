@@ -13,8 +13,8 @@ module.exports = new Command({
 		const guild = message.guild;
 		const embed = new Discord.MessageEmbed();
 		embed.setTitle(`${guild.name}\'s Server Info`)
-		.setAuthor(guild.name, guild.iconURL( { dynamic: true } ))
-		.setThumbnail(guild.iconURL( { dynamic: true } ))
+		.setAuthor(guild.name, guild.iconURL( { dynamic: true }))
+		.setThumbnail(guild.iconURL( { dynamic: true }))
 		.setColor(0xFF0000)
 		.addField('Server Name', guild.name)
 		.addField('Number Of Members', guild.memberCount.toString())
