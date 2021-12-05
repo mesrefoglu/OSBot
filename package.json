@@ -11,8 +11,8 @@
     "url": "git+https://github.com/qedized/OSBot.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Qedized",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/qedized/OSBot/issues"
   },
