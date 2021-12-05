@@ -1,5 +1,5 @@
 # no need to upload the modules
 node_modules
 
-# this has the token
+# config file
 config.json
