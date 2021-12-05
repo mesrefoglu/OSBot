@@ -5,7 +5,7 @@ const monthNames = [ "January", "February", "March", "April", "May", "June",
 
 module.exports = {
 	data: new SlashCommandBuilder().setName('server').setDescription('Displays server\'s info!'),
-	async execute(args) {
+	async execute(interaction) {
 		await interaction.reply(
 			`Server name: ${interaction.guild.name}\n` +
 			`Total members: ${interaction.guild.memberCount}\n` +

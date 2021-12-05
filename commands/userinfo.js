@@ -4,9 +4,9 @@ const monthNames = [ "January", "February", "March", "April", "May", "June",
 "July", "August", "September", "October", "November", "December" ];
 
 module.exports = {
-	data: new SlashCommandBuilder().setName('user-info').setDescription('Displays user info!')
+	data: new SlashCommandBuilder().setName('userinfo').setDescription('Displays user info!')
 	.addUserOption(option => option.setName('user').setDescription('The user whose info will be displayed')),
-	async execute(args) {
+	async execute(interaction) {
 		const user = interaction.options.getUser('user');
 		if (user) {
 			return interaction.reply(
