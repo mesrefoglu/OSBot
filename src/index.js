@@ -1,5 +1,3 @@
-/** @format */
-
 console.clear();
 
 const Client = require('./structures/Client.js');

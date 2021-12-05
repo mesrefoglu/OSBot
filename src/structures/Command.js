@@ -1,5 +1,3 @@
-/** @format */
-
 const Client = require('./Client.js');
 
 const Discord = require('discord.js');

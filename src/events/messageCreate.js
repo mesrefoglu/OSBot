@@ -1,5 +1,3 @@
-/** @format */
-
 const Event = require('../structures/Event.js');
 
 module.exports = new Event("messageCreate", (client, message) => {
