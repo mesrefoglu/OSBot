@@ -7,6 +7,7 @@ const monthNames = [ "January", "February", "March", "April", "May", "June",
 module.exports = new Command({
 	name: 'userinfo',
 	description: 'Display information about the user.',
+	permission: 'SEND_MESSAGES',
 	
 	async run(message, args, client) {
 		if(args.length === 1) {

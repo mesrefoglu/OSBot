@@ -7,6 +7,7 @@ const monthNames = [ "January", "February", "March", "April", "May", "June",
 module.exports = new Command({
 	name: 'serverinfo',
 	description: 'Display information about the server.',
+	permission: 'SEND_MESSAGES',
 	
 	async run(message, args, client) {
 		const guild = message.guild;

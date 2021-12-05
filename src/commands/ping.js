@@ -2,8 +2,9 @@ const Command = require('../structures/Command.js');
 
 module.exports = new Command({
 	name: 'ping',
-	description: 'Shows the ping of the bot.',
-	
+	description: 'Displays the delay of the bot.',
+	permission: 'SEND_MESSAGE',
+
 	async run(message, args, client) {
 		const msg = await message.reply(`Ping: ${client.ws.ping} ms.`);
 
