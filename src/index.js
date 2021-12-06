@@ -1,5 +1,3 @@
-console.clear();
-
 const Client = require('./structures/Client.js');
 const config = require('./data/config.json');
 

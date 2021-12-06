@@ -19,15 +19,41 @@ class Client extends Discord.Client {
 	}
 
 	start(token) {
-		fs.readdirSync("./src/commands").filter(file => file.endsWith('.js')).forEach(file => {
+		// Gets the commands from multiple folders
+		fs.readdirSync("./src/commands/fun").filter(file => file.endsWith('.js')).forEach(file => {
 			/**
 			 * @type {Command}
 			 */
-			const command = require(`../commands/${file}`);
+			const command = require(`../commands/fun/${file}`);
+			console.log(`Command ${command.name} loaded!`);
+			this.commands.set(command.name, command);
+		});
+		fs.readdirSync("./src/commands/moderation").filter(file => file.endsWith('.js')).forEach(file => {
+			/**
+			 * @type {Command}
+			 */
+			const command = require(`../commands/moderation/${file}`);
+			console.log(`Command ${command.name} loaded!`);
+			this.commands.set(command.name, command);
+		});
+		fs.readdirSync("./src/commands/roles").filter(file => file.endsWith('.js')).forEach(file => {
+			/**
+			 * @type {Command}
+			 */
+			const command = require(`../commands/roles/${file}`);
+			console.log(`Command ${command.name} loaded!`);
+			this.commands.set(command.name, command);
+		});
+		fs.readdirSync("./src/commands/tools").filter(file => file.endsWith('.js')).forEach(file => {
+			/**
+			 * @type {Command}
+			 */
+			const command = require(`../commands/tools/${file}`);
 			console.log(`Command ${command.name} loaded!`);
 			this.commands.set(command.name, command);
 		});
 
+		// Gets the events from events folder
 		fs.readdirSync("./src/events").filter(file => file.endsWith('.js')).forEach(file => {
 			/**
 			 * @type {Event}
