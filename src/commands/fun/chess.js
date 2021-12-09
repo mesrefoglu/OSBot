@@ -1,6 +1,7 @@
 const Command = require("../../structures/Command.js");
 
 var challenges = [];
+var games = [];
 
 function challengeExists (player, forOrFrom = "both") {
 	
@@ -14,6 +15,15 @@ function challengeExists (player, forOrFrom = "both") {
 		else if (forOrFrom == "for") {
 			if (challenges[i][1].id == player.id) return i;
 		}
+	}
+
+	return -1;
+}
+
+function gameExists (player) {
+	
+	for(let i = 0; i < games.length; i++) {
+		if (games[i][0].id == player.id || games[i][1].id == player.id) return i;
 	}
 
 	return -1;
@@ -52,7 +62,40 @@ module.exports = new Command({
 				message.channel.send("You wouldn't want to challenge a bot, would you? (You can't.)");
 			else {						// successfully challenged a player
 				let i = challengeExists(player0);
-				if(i > -1) message.channel.send("You already have a challenge!");
+				let j = challengeExists(player1);
+
+				if(i > -1) 
+				{
+					if (challengeExists(player0, "for") > -1){
+						message.channel.send(
+							"You are already challenged!\n" +
+							"Use `os!chess reject` first to challenge someone else.");
+					}
+					else {
+						message.channel.send(
+							"You already challenged somone!\n" +
+							"Use `os!chess cancel` first to challenge someone else.");
+					}
+					return;
+				}
+				else if(j > -1) 
+				{
+					if (challengeExists(player1, "for") > -1){
+						message.channel.send("That player is already challenged!");
+					}
+					else {
+						message.channel.send("That player already challenged someone else!");
+					}
+					return;
+				}
+				else if(gameExists(player0) > -1) {
+					message.channel.send("You are already in a game!");
+					return;
+				}
+				else if(gameExists(player1) > -1) {
+					message.channel.send("That player is already in a game!");
+					return;
+				}
 				
 				challenges.push([player0, player1]);
 				message.channel.send(
@@ -65,13 +108,12 @@ module.exports = new Command({
 			let i = challengeExists(player0, "for");
 			let j = challengeExists(player0, "from");
 
-			console.log(i + " " + j);
-
 			if (i == -1 && args[1] != "cancel") {
 				message.channel.send("There is no challenge against you!");
 			}
 			else if (args[1] === "accept") {
 				message.channel.send("<@!" + challenges[i][1] + ">, has accepted <@!" + challenges[i][0] + ">\'s challenge.");
+				games.push(challenges[i]);
 				challenges.splice(i, 1);
 			}
 			else if (args[1] === "reject") {
