@@ -16,13 +16,17 @@ module.exports = new Command({
 		var user = message.author;
 		
 		if(args.length === 2) {
-			user = message.mentions.users.first();
+			if (message.mentions.users.size === 0) {
+				message.channel.send('That is not a valid user or that user is not in this server.');
+				return;
+			}
+			else user = message.mentions.users.first();
 		}
 		else if (args.length > 2) {
-			message.reply("Can only look up one user at a time. Please use 0 or 1 parameter.");
+			message.reply('Can only look up one user at a time. Please use 0 or 1 parameter.');
 			return;
 		}
-
+		
 		const forceFetchedUser = await client.users.fetch(user, { force: true });
 
 		const embed = new Discord.MessageEmbed();
