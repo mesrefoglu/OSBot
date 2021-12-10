@@ -278,20 +278,64 @@ module.exports = new Command({
 			let i = gameExists(player0);
 			if (i == -1) { // if there is no active game to move
 				helpMessaage(message);
+			} else if (player0 != (games[i][2] ? games[i][0] : games[i][1])) { // if it's not the players turn
+				message.channel.send("It's not your turn! It's " + (games[i][2] ? games[i][0].username : games[i][0].username) + "'s turn.");
 			} else if (chesss[i].move(args[1]) == null) { // if the move isn't valid
 				message.channel.send("Not a valid move.");
-			} else { // if the move is valid
+			} else { // if there is an active game, it's the player's turn and the move is valid
 				const embed = new Discord.MessageEmbed();
-				games[i][2] = !games[i][2];
-				embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-					.setColor(0xFFFFFF)
-					.addField((games[i][2] ? games[i][0].username : games[i][1].username) + "'s Turn", "Current position:");
-				
-				message.channel.send({ embeds: [embed] });
-				message.channel.send(printBoard(chesss[i], (games[i][2] ? "white" : "black")));
+
+				if(chesss[i].game_over()) { // if the game is over after the last move
+					if(chesss[i].in_checkmate()) { // checkmate
+						const forceFetchedUser = await client.users.fetch((games[i][2] ? games[i][0] : games[i][1]), { force: true });
+						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+							.setColor(forceFetchedUser.accentColor)
+							.addField((games[i][2] ? games[i][0] : games[i][1]).username + " checkmates!", "Final position:");
+						message.channel.send({ embeds: [embed] });
+						message.channel.send(printBoard(chesss[i], "white"));
+					} else if(chesss[i].in_stalemate()) { // stealmate
+						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+							.setColor(0xFFFFFF)
+							.addField("Draw: Stealmate.", "Final position:");
+						message.channel.send({ embeds: [embed] });
+						message.channel.send(printBoard(chesss[i], "white"));
+					} else if(chesss[i].in_threefold_repetition()) { // 3fold repetition
+						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+							.setColor(0xFFFFFF)
+							.addField("Draw: Threefold repetition.", "Final position:");
+						message.channel.send({ embeds: [embed] });
+						message.channel.send(printBoard(chesss[i], "white"));
+					} else if(chesss[i].insufficient_material()) { // insufficient material
+						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+							.setColor(0xFFFFFF)
+							.addField("Draw: Insufficient material.", "Final position:");
+						message.channel.send({ embeds: [embed] });
+						message.channel.send(printBoard(chesss[i], "white"));
+					} else if(chesss[i].insufficient_material()) { // insufficient material
+						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+							.setColor(0xFFFFFF)
+							.addField("Draw: Insufficient material.", "Final position:");
+						message.channel.send({ embeds: [embed] });
+						message.channel.send(printBoard(chesss[i], "white"));
+					} else {  // 50 move rule
+						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+							.setColor(0xFFFFFF)
+							.addField("Draw: 50-move rule.", "Final position:");
+						message.channel.send({ embeds: [embed] });
+						message.channel.send(printBoard(chesss[i], "white"));
+					}
+					chesss.splice(i, 1);
+					games.splice(i, 1);
+				} else { // if the game keeps going
+					games[i][2] = !games[i][2];
+					embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+						.setColor(0xFFFFFF)
+						.addField((games[i][2] ? games[i][0].username : games[i][1].username) + "'s Turn", "Current position:");
+					
+					message.channel.send({ embeds: [embed] });
+					message.channel.send(printBoard(chesss[i], (games[i][2] ? "white" : "black")));
+				}
 			}
-			
-			// check if move is valid
 		}
     },
 });
