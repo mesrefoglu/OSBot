@@ -239,6 +239,7 @@ module.exports = new Command({
 				}
 				chesss.push(new Chess());
 				const embed = new Discord.MessageEmbed();
+                i = gameExists(player0);
 				embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
 					.setColor(0xFFFFFF)
 					.addField(`${games[i][0].username}'s Turn`, "Current position:");
