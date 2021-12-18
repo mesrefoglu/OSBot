@@ -3,44 +3,61 @@ const { Chess } = require('chess.js')
 const Discord = require('discord.js');
 
 /** 
- * Pairs of players active challenges and which one is white for
+ * Pairs of players active challenges, and whether first player is white, and server id
  * (first player is the challenger, second player is the challenged).
- * @type {Array.<[Discord.User, Discord.User, boolean]>}
+ * @type {Array.<[Discord.User, Discord.User, boolean, string]>}
  */
 var challenges = [];
 
 /** 
- * Pairs of players that are in a game, and a number to indicate
- * who's turn it is. (The first player is white).
- * @type {Array.<[Discord.User, Discord.User, boolean]>}
+ * Pairs of players that are in a game, a number to indicate turn, and server id
+ * (The first player is white).
+ * @type {Array.<[Discord.User, Discord.User, boolean, string]>}
  */
 var games = [];
 
 /** 
- * Active chess games.
- * @type {Array.<Chess>}
+ * Active chess games, and the server id
+ * @type {Array.<[Chess, string]>}
  */
 var chesss = [];
 
-function challengeExists(player, forOrFrom = "both") {
+/**
+ * Returns the index of the challenge if a challenge exists, -1 otherwise.
+ * @param {Discord.User} player 
+ * @param {string} forOrFrom 
+ * @param {string} guildId 
+ * @returns {number}
+ */
+function challengeExists(player, forOrFrom, guildId) {
 
     for (let i = 0; i < challenges.length; i++) {
         if (forOrFrom == "both") {
-            if (challenges[i][0].id == player.id || challenges[i][1].id == player.id) return i;
+            if ((challenges[i][0].id == player.id ||
+                challenges[i][1].id == player.id) &&
+                challenges[i][3] == guildId) return i;
         } else if (forOrFrom == "from") {
-            if (challenges[i][0].id == player.id) return i;
+            if (challenges[i][0].id == player.id && challenges[i][3] == guildId) return i;
         } else if (forOrFrom == "for") {
-            if (challenges[i][1].id == player.id) return i;
+            if (challenges[i][1].id == player.id && challenges[i][3] == guildId) return i;
         }
     }
 
     return -1;
 }
 
-function gameExists(player) {
+/**
+ * Returns the index of the game if a game exists, -1 otherwise.
+ * @param {Discord.User} player 
+ * @param {string} guildId 
+ * @returns {number}
+ */
+function gameExists(player, guildId) {
 
     for (let i = 0; i < games.length; i++) {
-        if (games[i][0].id == player.id || games[i][1].id == player.id) return i;
+        if ((games[i][0].id == player.id ||
+            games[i][1].id == player.id) &&
+            games[i][3] == guildId) return i;
     }
 
     return -1;
@@ -175,12 +192,12 @@ module.exports = new Command({
             else if (player1.bot) // challenged a bot
                 message.channel.send("You wouldn't want to challenge a bot, would you? (You can't.)");
             else { // successfully tagged another user in the server
-                let i = challengeExists(player0);
-                let j = challengeExists(player1);
+                let i = challengeExists(player0, "both", message.guildId);
+                let j = challengeExists(player1, "both", message.guildId);
 
                 if (i > -1) // if the player already has an active challenge
                 {
-                    if (challengeExists(player0, "for") > -1) { // if the challenge is for player0
+                    if (challengeExists(player0, "for", message.guildId) > -1) { // if the challenge is for player0
                         message.channel.send(
                             "You are already challenged!\n" +
                             "Use `os!chess reject` first to challenge someone else.");
@@ -191,31 +208,31 @@ module.exports = new Command({
                     }
                     return;
                 } else if (j > -1) { // if the challenged player already has an active challenge
-                    if (challengeExists(player1, "for") > -1) { // if the challenge is for them
+                    if (challengeExists(player1, "for", message.guildId) > -1) { // if the challenge is for them
                         message.channel.send("That player is already challenged!");
                     } else { // if the challenge is from them
                         message.channel.send("That player already challenged someone else!");
                     }
                     return;
-                } else if (gameExists(player0) > -1) { // if challenger player is already in a game
+                } else if (gameExists(player0, message.guildId) > -1) { // if challenger player is already in a game
                     message.channel.send("You are already in a game!");
                     return;
-                } else if (gameExists(player1) > -1) { // if challenged player is already in a game
+                } else if (gameExists(player1, message.guildId) > -1) { // if challenged player is already in a game
                     message.channel.send("That player is already in a game!");
                     return;
                 } else if (args.length == 2 || args[2] == "random") { // if everything is good to go, can challenge, random colors
 					let p0white = Math.round(Math.random()); // if 1, then player0 is white
-                    challenges.push([player0, player1, (p0white == 1 ? true : false)]);
+                    challenges.push([player0, player1, (p0white == 1 ? true : false), message.guildId]);
                     message.channel.send(
                         "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with random colors?\n" +
                         "Respond with \`os!chess accept\` or \`os!chess reject\` in 1 minute.");
                 } else if (args[2] == "white") { // player0 plays white, player1 plays black
-					challenges.push([player0, player1, true]);
+					challenges.push([player0, player1, true, message.guildId]);
                     message.channel.send(
                         "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with you playing with black pieces?\n" +
                         "Respond with \`os!chess accept\` or \`os!chess reject\` in 1 minute.");
 				} else if (args[2] == "black") { // player0 plays black, player1 plays white
-					challenges.push([player0, player1, false]);
+					challenges.push([player0, player1, false, message.guildId]);
                     message.channel.send(
                         "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with you playing with white pieces?\n" +
                         "Respond with \`os!chess accept\` or \`os!chess reject\` in 1 minute.");
@@ -225,28 +242,29 @@ module.exports = new Command({
 		// accept/reject a challenge for them, or cancel a challenge from them
 		else if (args[1] === "accept" || args[1] === "reject" || args[1] === "cancel") {
 
-            let i = challengeExists(player0, "for");
-            let j = challengeExists(player0, "from");
+            let i = challengeExists(player0, "for", message.guildId);
+            let j = challengeExists(player0, "from", message.guildId);
 
             if (i == -1 && args[1] != "cancel") { //if no challenge found for the player and not using cancel
                 message.channel.send("There is no challenge against you!");
             } else if (args[1] === "accept") { // if the player accepts
                 message.channel.send("<@!" + challenges[i][1] + "> has accepted <@!" + challenges[i][0] + ">\'s challenge.");
-				if(challenges[i][2] == true) { // player0 is white
-					games.push([challenges[i][0], challenges[i][1], true]);
+				if(challenges[i][2]) { // player0 is white
+					games.push([challenges[i][0], challenges[i][1], true, message.guildId]);
 				} else {
-					games.push([challenges[i][1], challenges[i][0], true]);
+					games.push([challenges[i][1], challenges[i][0], true, message.guildId]);
 				}
 				chesss.push(new Chess());
 				const embed = new Discord.MessageEmbed();
-                i = gameExists(player0);
+                i = gameExists(player0, message.guildId);
 				embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
 					.setColor(0xFFFFFF)
 					.addField(`${games[i][0].username}'s Turn`, "Current position:");
 				
 				message.channel.send({ embeds: [embed] });
 				message.channel.send(printBoard(new Chess(), "white"));
-                challenges.splice(i, 1);
+                j = challengeExists(player0, "both", message.guildId);
+                challenges.splice(j, 1);
             } else if (args[1] === "reject") { // if the player rejects
                 message.channel.send("<@!" + challenges[i][1] + "> has rejected <@!" + challenges[i][0] + ">\'s challenge.");
                 challenges.splice(i, 1);
@@ -256,9 +274,12 @@ module.exports = new Command({
                 message.channel.send("You have successfully cancelled your challenge against <@!" + challenges[j][1] + ">.");
                 challenges.splice(j, 1);
             }
-        } else if(args[1] === "ff") { // forfeits the game if there is an active game
+        } else if (args[1] === "inside") {
+			message.channel.send("Challenges:" + challenges);
+			message.channel.send("Games:" + games);
+		} else if(args[1] === "ff") { // forfeits the game if there is an active game
 			
-			let i = gameExists(player0);
+			let i = gameExists(player0, message.guildId);
 			if (i > -1) {
                 message.channel.send(
 					"<@!" + player0 + "> forfeited from their game with <@!" +
@@ -276,7 +297,7 @@ module.exports = new Command({
 			// TO DO
 			message.channel.send("Not yet implemented lol");
 		} else { // since no command worked so far, assume this command is to make a move
-			let i = gameExists(player0);
+			let i = gameExists(player0, message.guildId);
 			if (i == -1) { // if there is no active game to move
 				helpMessaage(message);
 			} else if (player0 != (games[i][2] ? games[i][0] : games[i][1])) { // if it's not the players turn

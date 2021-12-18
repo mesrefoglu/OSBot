@@ -3,3 +3,7 @@ node_modules
 
 # package-lock.json
 *.json
+
+# logo
+logo.png
+logo.psd
