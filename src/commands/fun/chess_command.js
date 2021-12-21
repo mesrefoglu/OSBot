@@ -10,8 +10,8 @@ const Discord = require('discord.js');
 var challenges = [];
 
 /** 
- * Pairs of players that are in a game, a number to indicate turn, and server id
- * (The first player is white).
+ * Pairs of players that are in a game, a boolean to indicate turn (true = white)
+ * and server id (The first player in the array is white).
  * @type {Array.<[Discord.User, Discord.User, boolean, string]>}
  */
 var games = [];
@@ -225,18 +225,18 @@ module.exports = new Command({
                     challenges.push([player0, player1, (p0white == 1 ? true : false), message.guildId]);
                     message.channel.send(
                         "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with random colors?\n" +
-                        "Respond with \`os!chess accept\` or \`os!chess reject\` in 1 minute.");
-                } else if (args[2] == "white") { // player0 plays white, player1 plays black
-					challenges.push([player0, player1, true, message.guildId]);
+                        "Respond with \`os!chess accept\` or \`os!chess reject\`.");
+                } else if (args[2] == "white" || args[2] == "black") { // player0 plays white, player1 plays black
+                    // colorStr is the color that player1 will be playing as
+                    const colorStr = (args[2] == "white" ? "black" : "white");
+                    // push a new challenge and send a corresponding message
+					challenges.push([player0, player1, colorStr == "black", message.guildId]);
                     message.channel.send(
-                        "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with you playing with black pieces?\n" +
-                        "Respond with \`os!chess accept\` or \`os!chess reject\` in 1 minute.");
-				} else if (args[2] == "black") { // player0 plays black, player1 plays white
-					challenges.push([player0, player1, false, message.guildId]);
-                    message.channel.send(
-                        "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with you playing with white pieces?\n" +
-                        "Respond with \`os!chess accept\` or \`os!chess reject\` in 1 minute.");
-				}
+                        "<@!" + player1 + ">, do you accept <@!" + player0 + ">\'s chess challenge with you playing the " +
+                        colorStr + " pieces?\nRespond with \`os!chess accept\` or \`os!chess reject\`.");
+				} else {
+                    message.reply("Correct usage: \`os!chess [user_tag] [white/black/random]\`");
+                }
             }
         }
 		// accept/reject a challenge for them, or cancel a challenge from them
@@ -259,7 +259,7 @@ module.exports = new Command({
                 i = gameExists(player0, message.guildId);
 				embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
 					.setColor(0xFFFFFF)
-					.addField(`${games[i][0].username}'s Turn`, "Current position:");
+					.addField(`:white_circle: ${games[i][0].username}'s Turn`, "Current position:");
 				
 				message.channel.send({ embeds: [embed] });
 				message.channel.send(printBoard(new Chess(), "white"));
@@ -274,10 +274,7 @@ module.exports = new Command({
                 message.channel.send("You have successfully cancelled your challenge against <@!" + challenges[j][1] + ">.");
                 challenges.splice(j, 1);
             }
-        } else if (args[1] === "inside") {
-			message.channel.send("Challenges:" + challenges);
-			message.channel.send("Games:" + games);
-		} else if(args[1] === "ff") { // forfeits the game if there is an active game
+        } else if(args[1] === "ff") { // forfeits the game if there is an active game
 			
 			let i = gameExists(player0, message.guildId);
 			if (i > -1) {
@@ -287,72 +284,53 @@ module.exports = new Command({
 				games.splice(i, 1);
 				chesss.splice(i, 1);
 			}
-			else {
-				message.channel.send("You are not in a game!");
-			}
+			else { message.channel.send("You are not in a game!"); }
 		} else if(args[1] === "draw") { // asks for a draw from the opponent
-			// TO DO
-			message.channel.send("Not yet implemented lol");
-		} else if(args[1] === "stats") { // shows your or other player's stats
 			// TO DO
 			message.channel.send("Not yet implemented lol");
 		} else { // since no command worked so far, assume this command is to make a move
 			let i = gameExists(player0, message.guildId);
-			if (i == -1) { // if there is no active game to move
+			if (i == -1) { // if there is no active game to move, just send the help message
 				helpMessaage(message);
 			} else if (player0 != (games[i][2] ? games[i][0] : games[i][1])) { // if it's not the players turn
-				message.channel.send("It's not your turn! It's " + (games[i][2] ? games[i][0].username : games[i][0].username) + "'s turn.");
+				message.channel.send("It's not your turn! It's " + (games[i][2] ? games[i][0].username : games[i][1].username) + "'s turn.");
 			} else if (chesss[i].move(args[1]) == null) { // if the move isn't valid
 				message.channel.send("Not a valid move.");
 			} else { // if there is an active game, it's the player's turn and the move is valid
 				const embed = new Discord.MessageEmbed();
+                embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
+                    .setColor(games[i][2] ? 0x000000 : 0xFFFFFF);
+                var endStr; // a string to put to embed later
 
 				if(chesss[i].game_over()) { // if the game is over after the last move
+                    embed.setTitle(`${games[i][0].username} vs ${games[i][1].username} Game Over`);
+                    // set color to grey to represent draw (if there is a checkmate, color is changed later)
+                    embed.setColor(0x808080);
 					if(chesss[i].in_checkmate()) { // checkmate
-						const forceFetchedUser = await client.users.fetch((games[i][2] ? games[i][0] : games[i][1]), { force: true });
-						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-							.setColor(forceFetchedUser.accentColor)
-							.addField((games[i][2] ? games[i][0] : games[i][1]).username + " checkmates!", "Final position:");
-						message.channel.send({ embeds: [embed] });
-						message.channel.send(printBoard(chesss[i], "white"));
+						// changes color to the color (white/black) of the winner
+					    embed.setColor(games[i][3] ? 0x000000 : 0xFFFFFF);
+                        endStr = ":" + (games[i][2] ? "white" : "black") + "_circle: "
+                            + (games[i][2] ? games[i][0] : games[i][1]).username + " checkmates!";
 					} else if(chesss[i].in_stalemate()) { // stealmate
-						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-							.setColor(0xFFFFFF)
-							.addField("Draw: Stealmate.", "Final position:");
-						message.channel.send({ embeds: [embed] });
-						message.channel.send(printBoard(chesss[i], "white"));
+						endStr = "Draw: Stealmate.";
 					} else if(chesss[i].in_threefold_repetition()) { // 3fold repetition
-						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-							.setColor(0xFFFFFF)
-							.addField("Draw: Threefold repetition.", "Final position:");
-						message.channel.send({ embeds: [embed] });
-						message.channel.send(printBoard(chesss[i], "white"));
+						endStr = "Draw: Threefold repetition.";
 					} else if(chesss[i].insufficient_material()) { // insufficient material
-						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-							.setColor(0xFFFFFF)
-							.addField("Draw: Insufficient material.", "Final position:");
-						message.channel.send({ embeds: [embed] });
-						message.channel.send(printBoard(chesss[i], "white"));
-					} else if(chesss[i].insufficient_material()) { // insufficient material
-						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-							.setColor(0xFFFFFF)
-							.addField("Draw: Insufficient material.", "Final position:");
-						message.channel.send({ embeds: [embed] });
-						message.channel.send(printBoard(chesss[i], "white"));
+						endStr = "Draw: Insufficient material.";
 					} else {  // 50 move rule
-						embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-							.setColor(0xFFFFFF)
-							.addField("Draw: 50-move rule.", "Final position:");
-						message.channel.send({ embeds: [embed] });
-						message.channel.send(printBoard(chesss[i], "white"));
+						endStr = "Draw: 50-move rule.";
 					}
+
+                    embed.addField(endStr, "Final position:");
+                    message.channel.send({ embeds: [embed] });
+                    message.channel.send(printBoard(chesss[i], "white"));
 					chesss.splice(i, 1);
 					games.splice(i, 1);
 				} else { // if the game keeps going
 					games[i][2] = !games[i][2];
-					embed.setTitle(`${games[i][0].username} vs ${games[i][1].username}`)
-						.setColor(0xFFFFFF)
-						.addField((games[i][2] ? games[i][0].username : games[i][1].username) + "'s Turn", "Current position:");
+					embed.addField(":" + (games[i][2] ? "white" : "black") + "_circle: "
+                        + (games[i][2] ? games[i][0].username : games[i][1].username) + "'s Turn",
+                        "Current position:");
 					
 					message.channel.send({ embeds: [embed] });
 					message.channel.send(printBoard(chesss[i], (games[i][2] ? "white" : "black")));
