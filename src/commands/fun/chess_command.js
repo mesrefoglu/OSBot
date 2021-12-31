@@ -22,6 +22,12 @@ var games = [];
  */
 var chesss = [];
 
+/** 
+ * Players that were offered draws, and the server id.
+ * @type {Array.<[Discord.User, string]>}
+ */
+var draws = [];
+
 /**
  * Returns the index of the challenge if a challenge exists, -1 otherwise.
  * @param {Discord.User} player 
@@ -63,15 +69,29 @@ function gameExists(player, guildId) {
     return -1;
 }
 
+/**
+ * Returns the index of the draw proposition if a draw proposition exists, -1 otherwise.
+ * @param {Discord.User} player 
+ * @param {string} guildId 
+ * @returns {number}
+ */
+function drawExists(player, guildId) {
+
+    for (let i = 0; i < draws.length; i++) {
+        if (draws[i][0].id == player.id &&
+            draws[i][1] == guildId) return i;
+    }
+
+    return -1;
+}
+
 function helpMessaage(message) {
 	return message.reply(
-		"Please use the chess command with an argument:\n" +
+		"Please use the chess command with one of these arguments:\n" +
 		"`os!chess [user_tag] [white/black/random]` to challenge someone. (e.g. `os!chess @" +
-		message.author.tag +
-		"`)\n" +
+		message.author.tag + "`)\n" +
 		"`os!chess [move_notation]` to make a move. (e.g. `os!chess Ke2`)\n" +
-		"`os!chess ff` to forfeit.\n" +
-		"`os!chess draw` to offer a draw.\n" +
+		"`os!chess ff` to forfeit.\n" + "`os!chess draw` to offer a draw.\n" +
 		"`os!chess stats [user_tag]` to check your (or others') stats.\n" +
 		"`os!chess block` to block incoming challenges.\n" +
 		"`os!chess help` brings up this message.");
@@ -181,6 +201,9 @@ module.exports = new Command({
          * @type Discord.User
          */
         const player0 = message.author;
+        /**
+         * @type Discord.User
+         */
         var player1;
 
         if (args.length === 1 || args[1] == "help") { // no arguments or asked for help
@@ -275,20 +298,58 @@ module.exports = new Command({
                 challenges.splice(j, 1);
             }
         } else if(args[1] === "ff") { // forfeits the game if there is an active game
-			
 			let i = gameExists(player0, message.guildId);
-			if (i > -1) {
+			if (i > -1) { // game exists, can ff
                 message.channel.send(
 					"<@!" + player0 + "> forfeited from their game with <@!" +
 					(player0 === games[i][0] ? games[i][1] : games[i][0]) + ">, making them victorious!");
 				games.splice(i, 1);
 				chesss.splice(i, 1);
-			}
-			else { message.channel.send("You are not in a game!"); }
+			} else {
+                message.channel.send("You are not in a game!");
+            }
 		} else if(args[1] === "draw") { // asks for a draw from the opponent
-			// TO DO
-			message.channel.send("Not yet implemented lol");
-		} else { // since no command worked so far, assume this command is to make a move
+			let i = gameExists(player0, message.guildId);
+            let otherPlayer = (player0 === games[i][0] ? games[i][1] : games[i][0]);
+			if (i > -1) {
+                let j = drawExists(player0, message.guildId);
+                if(j > -1) { // there already is a draw offer for this player
+                    message.channel.send("Game ended between <@!" + games[i][0] +
+                        "> and <@!" + games[i][1] + "> with a draw in agreement.");
+                    games.splice(i, 1);
+                    chesss.splice(i, 1);
+                    draws.splice(j, 1);
+                    return;
+                }
+                message.channel.send(
+					"<@!" + player0 + "> wants to draw the game. Do you accept <@!" + otherPlayer + ">?\n" +
+                    "Respond with \`os!chess yes\` or \`os!chess no\`");
+                draws.push([otherPlayer, message.guildId]);
+			} else {
+                message.channel.send("You are not in a game!");
+            }
+		} else if(args[1] === "yes" || args[1] === "no") { // accepts or rejects draw
+            let i = gameExists(player0, message.guildId);
+            if(i > -1) { // game exists
+                let j = drawExists(player0, message.guildId);
+                if (j > -1) { // draw offer for this player exists
+                    if (args[1] === "yes") { // opponent agrees to draw
+                        message.channel.send("Game ended between <@!" + games[i][0] +
+                            "> and <@!" + games[i][1] + "> with a draw in agreement.");
+                        games.splice(i, 1);
+                        chesss.splice(i, 1);
+                        draws.splice(j, 1);
+                    } else { // opponent does not want to draw
+                        message.channel.send("<@!" + player0 + "> did not want to draw. Game will continue.");
+                        draws.splice(j, 1);
+                    }
+                } else {
+                    message.channel.send("Opponent didn't offer a draw!");
+                }
+            } else { // if no game exists, then send help message
+                helpMessaage(message);
+            }
+        } else { // since no command worked so far, assume this command is to make a move
 			let i = gameExists(player0, message.guildId);
 			if (i == -1) { // if there is no active game to move, just send the help message
 				helpMessaage(message);
