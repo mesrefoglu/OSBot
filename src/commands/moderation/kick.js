@@ -3,7 +3,7 @@ const Discord = require('discord.js');
 
 module.exports = new Command({
 	name: 'kick',
-	description: 'Kick a user.',
+	description: 'Kick a user or multiple users.',
 	permission: 'KICK_MEMBERS',
 	
 	async run(message, args, client) {
@@ -17,26 +17,17 @@ module.exports = new Command({
             return;
         } else if (args.length == 2 && message.mentions.users.size === 1) { // one tag
             try {
-                username = message.mentions.members.first().username;
+                username = message.mentions.users.first().username;
                 message.mentions.members.first().kick();
                 message.channel.send(username + " was kicked successfully.");
             } catch (e) {
                 message.channel.send("There was an error when kicking " + username + ": " + e);
-            } finally {
-                return;
-            }
+            } finally { return; }
         } else { // more than 1 user (and all parameters are users)
-            
-            /**
-             * Users to kick.
-             * @type Array<Discord.User>
-             */
-            var users = args.splice(1);
-
-            for (let i = 0; i < users.length; i++) { // kick the users
-                username = users[i].username;
+            for (let i = 0; i < message.mentions.members.size; i++) { // kick the members
+                var username = message.mentions.members.at(i).user.username;
                 try {
-                    users[i].kick();
+                    message.mentions.members.at(i).kick();
                     message.channel.send(username + " was kicked successfully.");
                 } catch (e) {
                     message.channel.send("There was an error when kicking " + username + ": " + e);
