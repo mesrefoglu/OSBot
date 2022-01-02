@@ -20,7 +20,7 @@ module.exports = new Command({
 	permission: 'KICK_MEMBERS',
 
 	async run(message, args, client) {
-        // no parameters or parameters without users
+        // no parameters or some parameters are not users
 		if(args.length == 1 || (args.length >= 3 && message.mentions.users.size < args.length - 1)) {
 			message.reply('Correct usage `os!kick [user_tag]+`');
         } else if (message.mentions.users.size === 0) { // no tags
